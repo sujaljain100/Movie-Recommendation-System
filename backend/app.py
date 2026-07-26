@@ -1,13 +1,17 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pickle
+from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
 CORS(app)
 
-# Load Model
+# Load Data
 movies = pickle.load(open("movies.pkl", "rb"))
-similarity = pickle.load(open("similarity.pkl", "rb"))
+vectorizer = pickle.load(open("vectorizer.pkl", "rb"))
+
+# Create vectors once when app starts
+vectors = vectorizer.transform(movies["tags"])
 
 
 def recommend(movie):
@@ -21,10 +25,15 @@ def recommend(movie):
 
     index = movie_list.index[0]
 
+    similarity = cosine_similarity(
+        vectors[index],
+        vectors
+    ).flatten()
+
     distances = sorted(
-        list(enumerate(similarity[index])),
-        reverse=True,
-        key=lambda x: x[1]
+        list(enumerate(similarity)),
+        key=lambda x: x[1],
+        reverse=True
     )
 
     recommended = []
@@ -39,7 +48,6 @@ def recommend(movie):
 
 @app.route("/")
 def home():
-
     return jsonify({
         "message": "Movie Recommendation API Running"
     })
@@ -50,7 +58,7 @@ def recommendation():
 
     data = request.get_json()
 
-    movie = data.get("movie")
+    movie = data.get("movie", "")
 
     result = recommend(movie)
 
