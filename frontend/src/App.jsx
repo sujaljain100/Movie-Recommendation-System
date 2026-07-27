@@ -2,6 +2,8 @@ import { useState } from "react";
 import axios from "axios";
 import "./App.css";
 
+const API_URL = "http://13.203.193.97:8000";
+
 function App() {
   const [movie, setMovie] = useState("");
   const [recommendations, setRecommendations] = useState([]);
@@ -19,15 +21,22 @@ function App() {
     setError("");
 
     try {
-      const res = await axios.post("http://127.0.0.1:5000/recommend", {
-        movie: movie,
+      const res = await axios.post(`${API_URL}/recommend`, {
+        movie: movie.trim(),
       });
 
-      setRecommendations(res.data.recommendations);
-      setSearchedMovie(movie);
+      setRecommendations(res.data.recommendations || []);
+      setSearchedMovie(movie.trim());
     } catch (err) {
       console.error(err);
-      setError("Backend is not running.");
+
+      if (err.response) {
+        setError(err.response.data.message || "Something went wrong.");
+      } else {
+        setError("Unable to connect to AWS backend.");
+      }
+
+      setRecommendations([]);
     }
 
     setLoading(false);
@@ -35,22 +44,15 @@ function App() {
 
   return (
     <div className="app">
-
       <div className="background-circle one"></div>
       <div className="background-circle two"></div>
 
       <header>
-
-        <div className="logo">
-          🎬 MovieMatch AI
-        </div>
-
+        <div className="logo">🎬 MovieMatch AI</div>
       </header>
 
       <main>
-
         <section className="hero">
-
           <span className="tag">
             AI Powered Recommendation System
           </span>
@@ -67,7 +69,6 @@ function App() {
           </p>
 
           <div className="search-box">
-
             <input
               type="text"
               placeholder="Search movie..."
@@ -81,101 +82,63 @@ function App() {
             <button onClick={recommendMovie}>
               {loading ? "Searching..." : "Search"}
             </button>
-
           </div>
 
-          {error && (
-            <div className="error">
-              {error}
-            </div>
-          )}
-
+          {error && <div className="error">{error}</div>}
         </section>
 
         {loading && (
-
           <section className="results">
-
             <div className="section-title">
               Searching...
             </div>
 
-            {[1,2,3,4,5].map((item)=>(
+            {[1, 2, 3, 4, 5].map((item) => (
               <div className="skeleton-card" key={item}></div>
             ))}
-
           </section>
-
         )}
 
-        {!loading &&
-          recommendations.length > 0 && (
-
+        {!loading && recommendations.length > 0 && (
           <section className="results">
-
             <div className="section-title">
-
               Results for
-
-              <span>
-                {" "}
-                "{searchedMovie}"
-              </span>
-
+              <span> "{searchedMovie}"</span>
             </div>
 
-            {recommendations.map((movie,index)=>(
-              <div
-                className="movie-card"
-                key={index}
-              >
-
+            {recommendations.map((movie, index) => (
+              <div className="movie-card" key={index}>
                 <div className="movie-left">
-
                   <div className="movie-number">
-                    {String(index+1).padStart(2,"0")}
+                    {String(index + 1).padStart(2, "0")}
                   </div>
 
                   <div>
-
-                    <h2>
-                      {movie}
-                    </h2>
+                    <h2>{movie}</h2>
 
                     <p>
                       Recommended based on storyline,
                       genre and content similarity.
                     </p>
-
                   </div>
-
                 </div>
 
                 <button className="recommend-btn">
                   Recommended ⭐
                 </button>
-
               </div>
             ))}
-
           </section>
-
         )}
 
         {!loading &&
-          recommendations.length===0 &&
-          searchedMovie!=="" && (
-
-          <div className="empty">
-
-            No recommendations found.
-
-          </div>
-
-        )}
-
+          recommendations.length === 0 &&
+          searchedMovie !== "" && (
+            <div className="empty">
+              No recommendations found.
+            </div>
+          )}
       </main>
-
     </div>
   );
 }
